@@ -11,10 +11,12 @@ from dependencies import get_current_user
 from models import Bid, Bracket, Cassette, CassetteTypeEnum, Comment, Customer, ExtensionBracket, Klamer, KlamerTypeEnum, LinearPanel, ManagerEnum, Material, MaterialColor, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, Product, ProductTypeEnum, Profile, ProfileType, Sheets, StatusEnum, Task, TaskWorkshop, UrgencyEnum, User, Workshop, WorkshopEnum
 from database import get_db
 from fastapi.templating import Jinja2Templates
-from schemas import WorkshopRead
+from schemas import ProductRequest, WorkshopRead
 from services.file_service import save_file
 from services.task_service import create_bid, create_tasks, get_task_by_id, get_tasks_list, save_customer
 import os
+
+from static import product_fields_map
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -39,7 +41,8 @@ async def get_task(request: Request, task_id: int, db: Session = Depends(get_db)
         user_authenticated = True
     task = get_task_by_id(task_id, db)
     product_id = task.product_id
-    fields = get_product_fields(product_id, db) if product_id else []
+    product = db.query(Product).filter(Product.id == product_id).first()
+    fields = get_product_fields(product.type, db) if product_id else []
     return templates.TemplateResponse("task_detail.html", {
         "request": request,
         "user_authenticated": user_authenticated, # type: ignore
@@ -147,11 +150,11 @@ def get_products():
     """Возвращает список продуктов из Enum"""
     return [{"value": item.name, "label": item.value} for item in ProductTypeEnum]
 
-@router.get("/products/{product_id}/fields")
-def get_product_fields(product_type: str, db: Session = Depends(get_db)):
+@router.get("/products/{productType}/fields")
+def get_product_fields(productType: str, db: Session = Depends(get_db)):
 
     fields = []
-    if product_type == "PROFILE": # type: ignore
+    if productType == "PROFILE": # type: ignore
         profile_types = db.query(ProfileType).all()
         opt_profile = []
         for item in profile_types:
@@ -161,7 +164,7 @@ def get_product_fields(product_type: str, db: Session = Depends(get_db)):
             {"name": "length", "label": "Введите длину профиля", "type": "number"},
             {"name": "quantity", "label": "Введите количество профилей", "type": "number"},
         ]
-    elif product_type == "KLAMER": # type: ignore
+    elif productType == "KLAMER": # type: ignore
         opt_klamer = []
         for item in KlamerTypeEnum:
             opt_klamer.append({"value": item.name, "label": item.value})
@@ -169,21 +172,21 @@ def get_product_fields(product_type: str, db: Session = Depends(get_db)):
             {"name": "type", "label": "Выберите тип клямеров", "type": "select", "options": opt_klamer},
             {"name": "quantity", "label": "Введите количество клямеров", "type": "number"},
         ]
-    elif product_type == "BRACKET": # type: ignore
+    elif productType == "BRACKET": # type: ignore
         fields = [
             {"name": "width", "label": "Введите ширину кронштейнов", "type": "number"},
             {"name": "length", "label": "Введите длину кронштейнов", "type": "text"},
             {"name": "thickness", "label": "Введите толщину кронштейнов", "type": "number"},
             {"name": "quantity", "label": "Введите количество кронштейнов", "type": "number"},
         ]
-    elif product_type == "EXTENSION_BRACKET": # type: ignore
+    elif productType == "EXTENSION_BRACKET": # type: ignore
         fields = [
             {"name": "width", "label": "Введите ширину удлинителей", "type": "number"},
             {"name": "length", "label": "Введите длину удлинителей", "type": "text"},
             {"name": "heel", "label": "Угловой", "type": "checkbox"},
             {"name": "quantity", "label": "Введите количество удлинителей", "type": "number"},
         ]
-    elif product_type == "CASSETTE": # type: ignore
+    elif productType == "CASSETTE": # type: ignore
         opt_cassette = []
         for item in CassetteTypeEnum:
             opt_cassette.append({"value": item.name, "label": item.value})
@@ -191,7 +194,7 @@ def get_product_fields(product_type: str, db: Session = Depends(get_db)):
             {"name": "cassette_type_id", "label": "Выберите тип кассет", "type": "select", "options": opt_cassette},
             {"name": "quantity", "label": "Введите количество кассет", "type": "number"},
         ]
-    elif product_type == "LINEAR_PANEL": # type: ignore
+    elif productType == "LINEAR_PANEL": # type: ignore
         fields = [
             {"name": "field", "label": "Введите размер рабочей поверхности", "type": "number"},
             {"name": "rust", "label": "Введите размер руста", "type": "number"},
@@ -199,19 +202,19 @@ def get_product_fields(product_type: str, db: Session = Depends(get_db)):
             {"name": "butt_end", "label": "Закрытые торцы", "type": "checkbox"},
             {"name": "quantity", "label": "Введите количество панелей", "type": "number"},
         ]
-    elif product_type == "FACING": # type: ignore
+    elif productType == "FACING": # type: ignore
         fields = [
             {"name": "quantity", "label": "Введите количество фасонки", "type": "number"},
         ]
-    elif product_type == "SHEET": # type: ignore
+    elif productType == "SHEET": # type: ignore
         fields = [
             {"name": "quantity", "label": "Введите количество листов", "type": "number"},
         ]
-    elif product_type == "WALL_PANEL": # type: ignore
+    elif productType == "WALL_PANEL": # type: ignore
         fields = [
             {"name": "quantity", "label": "Введите количество продэкса", "type": "number"},
         ]
-    elif product_type == "OTHER": # type: ignore
+    elif productType == "OTHER": # type: ignore
         fields = [
             {"name": "quantity", "label": "Введите количество", "type": "number"},
         ]
@@ -357,3 +360,49 @@ def upload_file(file: UploadFile = File(...)):
         f.write(file.file.read())
     return {"message": "Файл загружен", "file_path": file_location}
 
+@router.get("/get_product_fields/{product_type}")
+async def get_product_fields(product_type: str, request: ProductRequest):
+    """
+    Эндпоинт для получения карты полей и вариантов в зависимости от типа продукта и условий.
+    """
+
+    # Проверяем, существует ли продукт в карте
+    if product_type not in product_fields_map:
+        raise HTTPException(status_code=404, detail="Продукт не найден")
+
+    # Получаем карту полей для выбранного продукта
+    fields_map = product_fields_map[product_type]
+
+    # Проверяем наличие поля для материала
+    if request.material_type:
+        if "материал" in fields_map and request.material_type in fields_map["материал"]:
+            material_fields = fields_map["материал"][request.material_type]
+            
+            # Проверяем толщину, если она указана
+            if request.thickness:
+                if request.thickness not in material_fields:
+                    raise HTTPException(status_code=400, detail=f"Толщина {request.thickness} не доступна для материала {request.material_type}")
+            else:
+                # Если толщина не указана, предложим все доступные
+                material_fields["толщины"] = list(material_fields.values())[0]  # Предположим, что толщина - это массив значений
+            fields_map["материал"][request.material_type] = material_fields
+
+        else:
+            raise HTTPException(status_code=400, detail=f"Материал {request.material_type} не найден для данного типа продукта")
+
+    # Логика для покраски, если материал не полимер
+    if request.paint is not None:
+        if request.paint and request.material_type != "полимер":
+            fields_map["покраска"] = {"type": "checkbox", "label": "Красим?"}
+        elif not request.paint and request.material_type == "полимер":
+            fields_map["покраска"] = {"type": "checkbox", "label": "Красим?"}
+
+    # Логика для дополнительных условий, например, описание для "другое"
+    if request.other_condition == "другое":
+        fields_map["другое_описание"] = {"type": "text", "label": "Описание"}
+
+    # Логика для цвета
+    if request.color:
+        fields_map["цвет"] = {"type": "color_picker", "label": "Выберите цвет"}
+
+    return fields_map

@@ -207,3 +207,12 @@ class BidWithTasks(BidRead):
 
 class CustomerWithBids(CustomerRead):
     bid: List[BidRead] = []
+
+
+class ProductRequest(BaseModel):
+    product_type: str  # Тип продукта, например, "профиля", "клямера", "кассеты" и т.д.
+    material_type: Optional[str] = None  # Дополнительный выбор материала, если применимо
+    thickness: Optional[float] = None  # Толщина материала, если применимо
+    other_condition: Optional[str] = None  # Дополнительное поле, если применимо
+    color: Optional[str] = None  # Поле для цвета, если применимо
+    paint: Optional[bool] = None  # Необходимость покраски, если материал не полимер

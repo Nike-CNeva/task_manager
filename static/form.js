@@ -106,14 +106,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // Загрузка полей изделия
-    function loadProductFields(productId, container) {
-        console.log(`🔄 Загрузка полей для изделия: ${productId}`);
+    function loadProductFields(productType, container) {
+        console.log(`🔄 Загрузка полей для изделия: ${productType}`);
 
         // Удаляем старые поля изделия и материала
         container.querySelector(".product-fields")?.remove();
 
 
-        fetch(`/products/${productId}/fields`)
+        fetch(`/products/${productType}/fields`)
             .then(response => response.json())
             .then(fields => {
                 const fieldContainer = document.createElement("div");
