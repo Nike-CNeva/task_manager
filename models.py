@@ -167,7 +167,7 @@ class Task(Base):
     weight = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    data = Column(JSON, default={})
+
     # One-to-Many связи
     sheets = relationship("Sheets", back_populates="task", cascade="all, delete-orphan")
     
