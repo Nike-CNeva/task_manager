@@ -69,4 +69,3 @@ def seed_data(db):
             if not exists:
                 db.add(ProfileType(name=profile_name))
                 db.commit()
-    

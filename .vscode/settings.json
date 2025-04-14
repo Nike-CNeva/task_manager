@@ -1,4 +1,5 @@
 {
+
     "terminal.integrated.shell": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
     "terminal.integrated.enableImages": true,
     "python.analysis.extraPaths": [
@@ -6,4 +7,5 @@
     ],
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "standard",
+
 }

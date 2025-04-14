@@ -12,4 +12,3 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     # Получаем пользователя из базы данных по user_id
     user = get_user_by_username(db, user_username)
 
-    return user
