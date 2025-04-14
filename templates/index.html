@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ message }}</h3>
+            </div>
+            <div class="card-body">
+                <p>Текущая дата и время: <span id="time">{{ current_datetime }}</span></p>
+
+                {% if user_authenticated %}
+                <h2>Добро пожаловать, {{ user_name }}!</h2>
+                <a href="/tasks" class="btn btn-success">Перейти к задачам</a>
+                {% else %}
+                <div class="alert alert-warning mt-4">
+                    <h4 class="alert-heading">Добро пожаловать на главную страницу!</h4>
+                    <p>Пожалуйста, авторизуйтесь, чтобы начать работать с производственными задачами.</p>
+                    <a href="/login" class="btn btn-primary">Войти</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // Переменная для хранения текущего времени
+    let currentTime = new Date("{{ current_datetime }}").getTime();
+
+    function updateTime() {
+        // Увеличиваем время на 1 секунду (1000 миллисекунд)
+        currentTime += 1000;
+
+        // Обновляем отображение времени
+        const date = new Date(currentTime);
+        document.getElementById('time').innerText = date.toLocaleString();
+    }
+
+    // Обновляем время каждую секунду
+    setInterval(updateTime, 1000);
+    updateTime();
+</script>
+{% endblock %}

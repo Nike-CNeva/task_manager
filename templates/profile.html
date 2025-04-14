@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<h3>Ваши данные:</h3>
+
+<form id="profile-form" method="POST" action="/profile">
+    <ul class="list-group mb-4">
+        <li class="list-group-item">
+            <strong>Имя:</strong>
+            <input type="text" name="name" value="{{ name or 'Не указано' }}" class="form-control" required>
+        </li>
+        <li class="list-group-item">
+            <strong>Фамилия:</strong>
+            <input type="text" name="firstname" value="{{ firstname or 'Не указано' }}" class="form-control">
+        </li>
+        <li class="list-group-item">
+            <strong>Почта:</strong>
+            <input type="email" name="email" value="{{ email or 'Не указано' }}" class="form-control">
+        </li>
+        <li class="list-group-item">
+            <strong>Телеграм:</strong>
+            <input type="text" name="telegram" value="{{ telegram or 'Не указано' }}" class="form-control">
+        </li>
+        <li class="list-group-item">
+            <strong>Login:</strong>
+            <input type="text" name="username" value="{{ username or 'Не указано' }}" class="form-control" required>
+        </li>
+        <li class="list-group-item">
+            <strong>Должность:</strong><br>{{ user_type or 'Не указано' }}
+        </li>
+        <li class="list-group-item">
+            <strong>Цех:</strong><br>{{ workshops | join(', ') if workshops else 'Не указано' }}
+        </li>
+    </ul>
+
+    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+</form>
+<a href="/profile/password" class="btn btn-warning mt-3">Изменить пароль</a>
+<script>
+    document.getElementById('profile-form').addEventListener('submit', function (event) {
+        let isValid = true;
+        let errorMessages = [];
+        let formData = new FormData(this);
+
+        function isEmptyOrDefault(value) {
+            return !value.trim() || value.trim().toLowerCase() === "не указано";
+        }
+
+        function isCyrillic(name) {
+            return /^[А-ЯЁ][а-яё]+$/.test(name);
+        }
+
+        // Проверка имени
+        const name = document.querySelector('input[name="name"]');
+        if (isEmptyOrDefault(name.value) || !isCyrillic(name.value)) {
+            isValid = false;
+            errorMessages.push("Имя должно содержать только кириллицу, первая буква заглавная.");
+        }
+
+        // Проверка фамилии
+        const firstname = document.querySelector('input[name="firstname"]');
+        if (!isEmptyOrDefault(firstname.value) && !isCyrillic(firstname.value)) {
+            isValid = false;
+            errorMessages.push("Фамилия должна содержать только кириллицу, первая буква заглавная.");
+        } else if (isEmptyOrDefault(firstname.value)) {
+            formData.set("firstname", "None");
+        }
+
+        // Проверка email
+        const email = document.querySelector('input[name="email"]');
+        if (!isEmptyOrDefault(email.value) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+            isValid = false;
+            errorMessages.push("Введите корректный email.");
+        } else if (isEmptyOrDefault(email.value)) {
+            formData.set("email", "None");
+        }
+
+        // Проверка Telegram
+        const telegram = document.querySelector('input[name="telegram"]');
+        if (!isEmptyOrDefault(telegram.value) && !/^@[a-zA-Z0-9_]{5,}$/.test(telegram.value)) {
+            isValid = false;
+            errorMessages.push("Введите корректный Telegram (например, @username).");
+        } else if (isEmptyOrDefault(telegram.value)) {
+            formData.set("telegram", "None");
+        }
+
+        // Проверка логина
+        const username = document.querySelector('input[name="username"]');
+        if (isEmptyOrDefault(username.value) || username.value.trim().length < 3) {
+            isValid = false;
+            errorMessages.push("Логин должен содержать минимум 3 символа.");
+        }
+
+        if (!isValid) {
+            event.preventDefault();
+            alert("Исправьте ошибки перед сохранением:\n\n" + errorMessages.join("\n"));
+        }
+    });
+</script>
+{% endblock %}

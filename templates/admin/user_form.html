@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ 'Редактировать' if edit else 'Добавить' }} пользователя{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <h1>{{ 'Редактировать' if edit else 'Добавить' }} пользователя</h1>
+        <form method="post">
+            {{ csrf_token }}
+            
+            <div class="mb-3">
+                <label class="form-label">Имя</label>
+                <input type="text" name="name" class="form-control" value="{{ user_obj.name if edit else '' }}" required>
+            </div>
+            
+            {% if not edit %}
+            <div class="mb-3">
+                <label class="form-label">Логин</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Пароль</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            {% else %}
+                <input type="hidden" name="id" value="{{ user_obj.id }}">
+                <input type="hidden" name="username" value="{{ user_obj.username }}">
+                <input type="hidden" name="password" value="{{ user_obj.password }}">
+            {% endif %}
+            
+            <div class="mb-3">
+                <label class="form-label">Должность</label>
+                <select name="user_type" class="form-select" required>
+                    {% for role in roles %}
+                    <option value="{{ role }}" {% if edit and user_obj.user_type == role %} selected {% endif %}>{{ role }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Цех</label>
+                <select name="workshops[]" class="form-select" multiple required>
+                    {% for workshop in workshops %}
+                    <option value="{{ workshop.name.value }}" {% if edit and workshop.name.value in user_workshops %} selected {% endif %}>{{ workshop.name.value }}</option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Удерживайте Ctrl (Cmd на Mac), чтобы выбрать несколько</small>
+            </div>
+            
+            {% if edit %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_active" value="true" {% if user_obj.is_active %} checked {% endif %}>
+                <label class="form-check-label">Активен</label>
+            </div>
+            <input type="hidden" name="id" value="{{ user_obj.id }}">
+            {% else %}
+            <input type="hidden" name="is_active" value="true">
+            {% endif %}
+            
+            <button type="submit" class="btn btn-primary mt-3">Сохранить</button>
+            <a href="/admin/users" class="btn btn-secondary mt-3">Отмена</a>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,31 @@
+/* custom.css */
+html,
+body {
+    height: 100%;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.card-header {
+    background-color: #8ea8ff;
+    color: rgb(0, 9, 63);
+}
+
+.card-body {
+    background-color: #f9f9f9;
+}
+
+footer {
+    margin-top: auto;
+}
+th[onclick] {
+    cursor: pointer;
+    user-select: none;
+}
+th.sorted-asc::after { content: " ↑"; }
+th.sorted-desc::after { content: " ↓"; }

@@ -1,0 +1,59 @@
+/* Контейнер формы */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center; /* Выравнивание по высоте */
+    gap: 10px; /* Расстояние между элементами */
+}
+
+input, select, textarea, button {
+    height: 40px; /* Одинаковая высота */
+    padding: 5px 10px;
+    font-size: 16px;
+    line-height: 1.2;
+    box-sizing: border-box;
+    vertical-align: middle;
+    margin: 10px;
+}
+textarea {
+    resize: vertical; /* Чтобы можно было растягивать только по вертикали */
+    min-height: 40px; /* Минимальная высота */
+    gap: 10px;
+}
+/* Группы кнопок */
+.button-group {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Поля изделия */
+.product-row {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+}
+
+.product-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.material-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+select[multiple] {
+    width: 300px;  /* Ширина */
+    height: auto;  /* Автоматическая высота */
+    min-height: 120px; /* Минимальная высота */
+}

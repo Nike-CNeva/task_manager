@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Детали задачи №{{ task.bid.task_number }}</h2>
+
+<p><strong>Заказчик:</strong> {{ task.bid.customer.name }}</p>
+<p><strong>Менеджер:</strong> {{ task.bid.manager.value }}</p>
+
+<p><strong>Тип продукции:</strong> {{ task.data.product_id }}</p>
+
+<h4>Детали продукции:</h4>
+<ul>
+    {% for field in fields %}
+        {% set value = task.data.product_details.get(field.name) %}
+        {% if value is not none %}
+            <li><strong>{{ field.label }}:</strong>
+                {% if field.type == "checkbox" %}
+                    {{ "Да" if value == "on" else "Нет" }}
+                {% else %}
+                    {{ value }}
+                {% endif %}
+            </li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<p><strong>Материал:</strong> {{ task.material.name if task.material else "—" }}</p>
+<p><strong>Количество:</strong> {{ task.quantity }}</p>
+
+<p><strong>Листы:</strong>
+    {% if task.sheets %}
+        <ul>
+            {% for sheet in task.sheets %}
+                <li>{{ sheet.name }} ({{ sheet.thickness }} мм)</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        — 
+    {% endif %}
+</p>
+
+<p><strong>Вес:</strong> {{ task.weight or "—" }}</p>
+<p><strong>Отходность:</strong> {{ task.waste or "—" }}</p>
+<p><strong>Срочность:</strong> {{ task.urgency.value }}</p>
+<p><strong>Статус:</strong> {{ task.status.value }}</p>
+
+<p><strong>Статус по цехам:</strong>
+    {% if task.workshops %}
+        <ul>
+            {% for workshop in task.workshops %}
+                <li>{{ workshop.name }} — {{ workshop.status }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        — 
+    {% endif %}
+</p>
+
+<p><strong>Ответственные:</strong> 
+    {% if task.responsibles %}
+        {{ task.responsibles | map(attribute='name') | join(', ') }}
+    {% else %}
+        —
+    {% endif %}
+</p>
+
+<p><strong>Дата создания:</strong> {{ task.created_at }}</p>
+<p><strong>Дата завершения:</strong> {{ task.completed_at or "—" }}</p>
+
+<p><strong>Комментарии:</strong>
+    {% if task.comments %}
+        <ul>
+            {% for comment in task.comments %}
+                <li>{{ comment.users.name }}: {{ comment.text }} ({{ comment.created_at }})</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        — 
+    {% endif %}
+</p>
+
+<p><strong>Файлы:</strong>
+    {% if task.files %}
+        <ul>
+            {% for file in task.files %}
+                <li><a href="{{ url_for('download_file', file_id=file.id) }}">{{ file.filename }}</a></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        —
+    {% endif %}
+</p>
+
+<a href="/tasks/">Вернуться к списку</a>
+{% endblock %}
+

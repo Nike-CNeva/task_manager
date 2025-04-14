@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Создание заявки{% endblock %}
+{% block content %}
+<h2>Создание заявки</h2>
+<form id="bid-form">
+    <!-- Первая строка: кнопки -->
+    <div class="button-group">
+        <button type="button" id="add-product" class="form-button">Добавить изделие</button>
+        <button type="button" id="remove-product" class="form-button delete-button">Удалить последнее изделие</button>
+    </div>
+    <!-- Вторая строка: Номер заявки, Заказчик, Менеджер -->
+    <div class="form-row">
+        <input type="number" name="task_number" placeholder="Номер заявки">
+        <select id="customer-select" name="customer_id"></select>
+        <input type="text" id="new-customer" placeholder="Новый заказчик" style="display: none;">
+        <select name="manager">
+            <option>Выберите менеджера</option>
+            {% for manager in managers %}
+            <option value="{{ manager.value }}">{{ manager.value }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Контейнер для изделий -->
+    <div id="products-container"></div>
+
+    <!-- Четвертая строка: загрузка файлов -->
+    <div class="form-row">
+        <label for="file-upload">Загрузить файлы:</label>
+        <input type="file" id="file-upload" name="file" multiple>
+    </div>
+
+
+    <!-- Кнопки отправки -->
+    <button type="submit" class="form-button">Отправить заявку</button>
+</form>
+<div id="server-message" style="margin-top: 10px; font-weight: bold;"></div>
+<script src="{{ url_for('static', path='form.js') }}"></script>
+{% endblock %}
