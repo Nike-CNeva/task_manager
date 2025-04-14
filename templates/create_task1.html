@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание задачи</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .task-form { margin-top: 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container">
+    <h1 class="text-center mt-5">Создание задачи</h1>
+
+    <div class="task-form">
+        <!-- Тип продукта -->
+        <div class="form-group">
+            <label for="product_type">Тип продукта</label>
+            <select v-model="productType" id="product_type" class="form-control" @change="fetchFields">
+                <option v-for="(name, key) in productTypes" :key="key" :value="key">{{ name }}</option>
+            </select>
+        </div>
+
+        <!-- Динамическая форма для продукта -->
+        <form v-if="fields" @submit.prevent="submitForm">
+            <div v-for="(field, fieldName) in fields" :key="fieldName" class="form-group">
+                <label :for="fieldName">{{ fieldName }}</label>
+                
+                <div v-if="field.type === 'input'">
+                    <input v-model="formData[fieldName]" type="text" class="form-control" :placeholder="'Введите ' + fieldName">
+                </div>
+                <div v-if="field.type === 'checkbox'">
+                    <input v-model="formData[fieldName]" type="checkbox" class="form-check-input">
+                    <label class="form-check-label" for="exampleCheck1">{{ field.label }}</label>
+                </div>
+                <div v-if="field.type === 'select'">
+                    <select v-model="formData[fieldName]" class="form-control">
+                        <option v-for="(option, index) in field.options" :key="index" :value="option.value">{{ option.label }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Создать задачу</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            productTypes: {
+                "профиля": "Профиля",
+                "клямера": "Клямера",
+                "кассеты": "Кассеты",
+                "листы": "Листы"
+                // Можно добавить больше типов продуктов
+            },
+            productType: null, // Тип выбранного продукта
+            fields: null, // Данные для формы
+            formData: {} // Данные формы
+        },
+        methods: {
+            fetchFields() {
+                // Проверяем, что тип продукта выбран
+                if (!this.productType) return;
+
+                axios.get(`/get_product_fields/${this.productType}`, {
+                    params: {
+                        product_type: this.productType,
+                        material_type: this.formData.material_type || '',
+                        thickness: this.formData.thickness || '',
+                        other_condition: this.formData.other_condition || '',
+                        color: this.formData.color || '',
+                        paint: this.formData.paint || null
+                    }
+                })
+                .then(response => {
+                    this.fields = response.data;
+                    // Обнуляем formData, чтобы очистить форму
+                    this.formData = {};
+                })
+                .catch(error => {
+                    console.error("Ошибка при получении данных для формы:", error);
+                });
+            },
+            submitForm() {
+                console.log("Данные формы:", this.formData);
+                // Здесь можно отправить данные формы на сервер
+                // axios.post('/submit_task', this.formData)
+                //     .then(response => { /* обработать ответ */ })
+                //     .catch(error => { /* обработать ошибку */ })
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
