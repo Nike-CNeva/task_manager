@@ -3,11 +3,11 @@ from typing import List
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Request, UploadFile, status, Query
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
-from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum, Product, Material, MaterialColor, Sheets
+from models import Bid, Comment, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum, Product, Material, MaterialColor, Sheets
 from dependencies import get_current_user
 from database import get_db
 from fastapi.templating import Jinja2Templates, Jinja2Templates
-from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible,  StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, ProductRead, MaterialRead, CustomerRead, SheetRead, MaterialColorRead
+from schemas import BidDetail, CommentRead, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, Responsible,  StatusEnum, TaskDetail, UrgencyEnum, UserRead, WorkshopRead, ProductRead, MaterialRead, CustomerRead, SheetRead, MaterialColorRead
 from services.file_service import save_file
 from services.task_service import create_bid, create_tasks, get_tasks_list, save_customer
 import os

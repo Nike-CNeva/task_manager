@@ -2,13 +2,9 @@ from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 from models import (
-    ProductTypeEnum,
     UserTypeEnum,
-    ProfileTypeEnum,
     WorkshopEnum,
     ManagerEnum,
-    KlamerTypeEnum,
-    CassetteTypeEnum,
     MaterialFormEnum,
     MaterialTypeEnum,
     MaterialThicknessEnum,
@@ -27,7 +23,7 @@ class UserReadBase(BaseModel):
     user_type: UserTypeEnum
     is_active: bool = True
 
-class UserRead(UserBase):
+class UserRead(UserReadBase):
     id: int
 
 
@@ -125,7 +121,7 @@ class UserWithTasks(UserReadBase):
 class TaskWithUsers(TaskRead):
     responsible_users: List[UserReadBase] = []
 
-class BidWithTasks(BidReadBase):
+class BidWithTasks(BidRead):
     tasks: List[TaskRead] = []
 
 class CustomerWithBids(CustomerRead):
@@ -141,16 +137,16 @@ class ProductRequest(BaseModel):
     paint: Optional[bool] = None  # Необходимость покраски, если материал не полимер
 
 
-class Customer(BaseModel):
-    name: str
 
-class Manager(BaseModel):
+
+class ManagerBase(BaseModel):
     value: str
 
 class BidDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)    
     customer: CustomerRead
     manager: ManagerEnum
+    task_number: Optional[str] = None
 
 class ProductDetailField(BaseModel):
     name: str
@@ -160,13 +156,13 @@ class ProductDetailField(BaseModel):
 class Responsible(BaseModel):
     name: str
 
-class Comment(CommentReadBase):
+class CommentBase(CommentReadBase):
     users:  List[Responsible]  # Assuming a user has a name
     text: str
     created_at: datetime
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-class File(BaseModel):
+class FileBase(BaseModel):
     id: int
     filename: str
 
@@ -174,7 +170,6 @@ class TaskDetail(BaseModel):
     id: int
     bid: BidDetail
     product: ProductRead
-    task_number: str
     material: Optional[MaterialRead]
     material_color: Optional[MaterialColorRead]
     quantity: int
@@ -185,8 +180,8 @@ class TaskDetail(BaseModel):
     status: StatusEnum    
     workshops: List[WorkshopEnum]
     responsibles: List[Responsible]
-    comments: List[Comment]
-    files: List[File]
+    comments: List[CommentBase]
+    files: List[FileBase]
     created_at: datetime
     completed_at: Optional[datetime]
 
