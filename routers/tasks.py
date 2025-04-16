@@ -1,22 +1,19 @@
 import json
 from typing import List
-from venv import create
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import JSON
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from models import User, Workshop, WorkshopEnum
+from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum
 from dependencies import get_current_user
-from models import Bid, Bracket, Cassette, CassetteTypeEnum, Comment, Customer, ExtensionBracket, Klamer, KlamerTypeEnum, LinearPanel, ManagerEnum, Material, MaterialColor, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, Product, ProductTypeEnum, Profile, ProfileType, Sheets, StatusEnum, Task, TaskWorkshop, UrgencyEnum, User, Workshop, WorkshopEnum
 from database import get_db
 from fastapi.templating import Jinja2Templates
-from schemas import ProductRequest, WorkshopRead
+from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible, Sheet, StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, WorkshopWithStatus
 from services.file_service import save_file
-from services.task_service import create_bid, create_tasks, get_task_by_id, get_tasks_list, save_customer
+from services.task_service import create_bid, create_tasks, get_tasks_list, save_customer
 import os
+import logging
 
-from static import product_fields_map
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -34,22 +31,60 @@ async def get_tasks(request: Request, current_user: User = Depends(get_current_u
         "tasks": tasks
         })
 
-@router.get("/task/{task_id}")
-async def get_task(request: Request, task_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Возвращает HTML-шаблон с детальной информацией о задаче."""
-    if current_user:
-        user_authenticated = True
-    task = get_task_by_id(task_id, db)
-    product_id = task.product_id
-    product = db.query(Product).filter(Product.id == product_id).first()
-    fields = get_product_fields(product.type, db) if product_id else []
-    return templates.TemplateResponse("task_detail.html", {
-        "request": request,
-        "user_authenticated": user_authenticated, # type: ignore
-        "user_type": current_user.user_type.value,
-        "task": task,
-        "fields": fields
-        })
+@router.get("/task/{task_id}", response_model=TaskDetail)
+async def get_task_detail(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        task = db.query(Task).filter(Task.id == task_id).options(
+            joinedload(Task.bid).joinedload(Bid.customer),
+            joinedload(Task.sheets),
+            joinedload(Task.material),
+            joinedload(Task.workshops).joinedload(TaskWorkshop.workshop),
+            joinedload(Task.responsible_users),
+            joinedload(Task.comments).joinedload(Comment.users),
+            joinedload(Task.bid).joinedload(Bid.files)
+        ).one_or_none()
+
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        material_name = f"{task.material.form.value if task.material.form else ''} {task.material.type.value if task.material.type else ''} {task.material.thickness.value if task.material.thickness else ''}".strip()
+
+        task_detail = TaskDetail(
+            id=task.id,
+            bid=BidDetail(
+                task_number=task.bid.task_number if task.bid else None,
+                customer=task.bid.customer.name if task.bid and task.bid.customer else None,
+                manager=task.bid.manager.value if task.bid and task.bid.manager else None,
+            ),
+            product_id=str(task.product_id),
+            material=material_name,
+            quantity=task.quantity,
+            sheets=[Sheet(name=sheet.width.width, thickness=sheet.length.length) for sheet in task.sheets],
+            weight=task.weight,
+            waste=task.waste,
+            urgency=task.urgency.value,
+            status=task.status.value,
+            workshops=[WorkshopWithStatus(name=workshop.workshop.name.value, status=workshop.status) for workshop in task.workshops],
+            responsibles=[Responsible(name=responsible.name) for responsible in task.responsible_users],
+            comments=[
+                Comment(
+                    users=[Responsible(name=user.name) for user in comment.users],
+                    text=comment.comment,
+                    created_at=comment.created_at
+                ) for comment in task.comments
+            ],
+            files=[File(id=file.id, filename=file.file_name) for file in task.bid.files],
+            created_at=task.created_at,
+            completed_at=task.completed_at,
+        )
+
+        return task_detail
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while processing task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail="Database error")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while processing task {task_id}: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 @router.post("/task/{task_id}/delete")
 async def delete_task(task_id: int, db: Session = Depends(get_db)):
@@ -359,50 +394,3 @@ def upload_file(file: UploadFile = File(...)):
     with open(file_location, "wb") as f:
         f.write(file.file.read())
     return {"message": "Файл загружен", "file_path": file_location}
-
-@router.get("/get_product_fields/{product_type}")
-async def get_product_fields(product_type: str, request: ProductRequest):
-    """
-    Эндпоинт для получения карты полей и вариантов в зависимости от типа продукта и условий.
-    """
-
-    # Проверяем, существует ли продукт в карте
-    if product_type not in product_fields_map:
-        raise HTTPException(status_code=404, detail="Продукт не найден")
-
-    # Получаем карту полей для выбранного продукта
-    fields_map = product_fields_map[product_type]
-
-    # Проверяем наличие поля для материала
-    if request.material_type:
-        if "материал" in fields_map and request.material_type in fields_map["материал"]:
-            material_fields = fields_map["материал"][request.material_type]
-            
-            # Проверяем толщину, если она указана
-            if request.thickness:
-                if request.thickness not in material_fields:
-                    raise HTTPException(status_code=400, detail=f"Толщина {request.thickness} не доступна для материала {request.material_type}")
-            else:
-                # Если толщина не указана, предложим все доступные
-                material_fields["толщины"] = list(material_fields.values())[0]  # Предположим, что толщина - это массив значений
-            fields_map["материал"][request.material_type] = material_fields
-
-        else:
-            raise HTTPException(status_code=400, detail=f"Материал {request.material_type} не найден для данного типа продукта")
-
-    # Логика для покраски, если материал не полимер
-    if request.paint is not None:
-        if request.paint and request.material_type != "полимер":
-            fields_map["покраска"] = {"type": "checkbox", "label": "Красим?"}
-        elif not request.paint and request.material_type == "полимер":
-            fields_map["покраска"] = {"type": "checkbox", "label": "Красим?"}
-
-    # Логика для дополнительных условий, например, описание для "другое"
-    if request.other_condition == "другое":
-        fields_map["другое_описание"] = {"type": "text", "label": "Описание"}
-
-    # Логика для цвета
-    if request.color:
-        fields_map["цвет"] = {"type": "color_picker", "label": "Выберите цвет"}
-
-    return fields_map

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Dict, Optional, List
 from enum import Enum
 from datetime import datetime
 
@@ -216,3 +216,64 @@ class ProductRequest(BaseModel):
     other_condition: Optional[str] = None  # Дополнительное поле, если применимо
     color: Optional[str] = None  # Поле для цвета, если применимо
     paint: Optional[bool] = None  # Необходимость покраски, если материал не полимер
+    
+class Customer(BaseModel):
+    name: str
+
+class Manager(BaseModel):
+    value: str
+
+class BidDetail(BaseModel):
+    task_number: str
+    customer: str
+    manager: str
+
+class ProductDetailField(BaseModel):
+    name: str
+    label: str
+    type: str
+
+class Sheet(BaseModel):
+    name: str
+    thickness: float
+
+class Workshop(BaseModel):
+    name: str
+    status: str
+
+class Responsible(BaseModel):
+    name: str
+
+class Comment(BaseModel):
+    users:  List[Responsible]  # Assuming a user has a name
+    text: str
+    created_at: datetime
+
+class File(BaseModel):
+    id: int
+    filename: str
+
+class TaskDetail(BaseModel):
+    id: int
+    bid: BidDetail
+    product_id: str
+    material: Optional[str]
+    quantity: int
+    sheets: List[Sheet]
+    weight: Optional[str]
+    waste: Optional[str]
+    urgency: str
+    status: str
+    workshops: List[Workshop]
+    responsibles: List[Responsible]
+    comments: List[Comment]
+    files: List[File]
+    created_at: datetime
+    completed_at: Optional[datetime]
+    
+
+
+# Pydantic модель для Workshop с добавлением статуса
+class WorkshopWithStatus(BaseModel):
+    name: str
+    status: StatusEnum
