@@ -7,7 +7,7 @@ from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Worksho
 from dependencies import get_current_user
 from database import get_db
 from fastapi.templating import Jinja2Templates
-from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible,  StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, Workshop, ProductRead, MaterialRead, CustomerRead, SheetRead, File, MaterialColorRead
+from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible,  StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, ProductRead, MaterialRead, CustomerRead, SheetRead, MaterialColorRead
 from services.file_service import save_file
 from services.task_service import create_bid, create_tasks, get_tasks_list, save_customer
 import os
@@ -32,7 +32,7 @@ async def get_tasks(request: Request, current_user: User = Depends(get_current_u
         "tasks": tasks
         })
 
-@router.get("/{task_id}", response_model=TaskDetail)
+@router.get("/task/{task_id}", response_model=TaskDetail)
 def get_task_detail(task_id: int, db: Session = Depends(get_db)):
     """
     Get the detailed information for a specific task.
