@@ -1,6 +1,6 @@
 import json
 from typing import List
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Request, UploadFile, status, Query
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
 from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum, Product, Material, MaterialColor, Sheets
@@ -52,6 +52,9 @@ def get_task_detail(task_id: int, db: Session = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
+    # Check for task_number and set to empty string if None
+    task_number = task.bid.task_number or ""
+
     # Construct the TaskDetail object
     task_detail = TaskDetail(
         id=task.id,
@@ -59,7 +62,7 @@ def get_task_detail(task_id: int, db: Session = Depends(get_db)):
             task_number=task.bid.task_number,
             customer=CustomerRead.model_validate(task.bid.customer),
             manager=task.bid.manager,
-        ),
+        ) ,
         product=ProductRead.model_validate(task.product),
         material = MaterialRead.model_validate(task.material),
         material_color = MaterialColorRead.model_validate(task.material.color) if task.material.color else None,
@@ -70,12 +73,14 @@ def get_task_detail(task_id: int, db: Session = Depends(get_db)):
         urgency=task.urgency,
         status=task.status,
         workshops=[
-            Workshop(name=tw.workshop.name, status=tw.status)
+            WorkshopRead(id=tw.workshop.id, name=tw.workshop.name, status=tw.status)
             for tw in task.workshops
         ],
         responsibles=[Responsible(name=user.name) for user in task.responsible_users],
         comments=[Comment(users=[Responsible(name=user.name) for user in comment.users],text=comment.comment, created_at=comment.created_at) for comment in task.comments],
-        files=[File(id=file.id, filename=file.file_name) for file in task.bid.files],
+        files=[File(id=file.id, filename=file.file_name) for file in task.bid.files if file is not None
+        ],
+
         created_at=task.created_at,
         completed_at=task.completed_at,
     )
@@ -348,25 +353,15 @@ def get_material_thickness(type: str = Path(...)):
 
 
 @router.get("/workshops", response_model=List[WorkshopRead])
-async def get_workshops(db: Session = Depends(get_db)) -> List[WorkshopRead]:
+async def get_workshops() -> List[WorkshopRead]:
     """Возвращает список цехов, отсортированных в заданном порядке."""
-    
-    workshops = db.query(Workshop).all()
-    workshop_order = {
-        WorkshopEnum.PROFILE.value: 3,
-        WorkshopEnum.KLAMER.value: 4,
-        WorkshopEnum.BRACKET.value: 5,
-        WorkshopEnum.EXTENSION_BRACKET.value: 6,
-        WorkshopEnum.ENGINEER.value: 0,
-        WorkshopEnum.CUTTING.value: 1,
-        WorkshopEnum.COORDINATE_PUNCHING.value: 2,
-        WorkshopEnum.BENDING.value: 7,
-        WorkshopEnum.PAINTING.value: 8,
-    }
-    
-    sorted_workshops = sorted(workshops, key=lambda workshop: workshop_order.get(workshop.name.value, float('inf')))
-    workshops = [WorkshopRead.model_validate(workshop) for workshop in sorted_workshops]
-    print(workshops)
+    workshops = []
+    for id, workshop_enum in enumerate(WorkshopEnum): # type: ignore
+        workshops.append(
+            WorkshopRead(id=id, name=workshop_enum.value, status='ON_HOLD')
+        )
+
+
     # Преобразуем SQLAlchemy-объекты в Pydantic-модели
     return workshops
 
