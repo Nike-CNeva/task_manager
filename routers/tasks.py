@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum, Product, Material, MaterialColor, Sheets
 from dependencies import get_current_user
 from database import get_db
-from fastapi.templating import Jinja2Templates
+from fastapi.templating import Jinja2Templates, Jinja2Templates
 from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible,  StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, ProductRead, MaterialRead, CustomerRead, SheetRead, MaterialColorRead
 from services.file_service import save_file
 from services.task_service import create_bid, create_tasks, get_tasks_list, save_customer
@@ -76,8 +76,8 @@ def get_task_detail(task_id: int, db: Session = Depends(get_db)):
             WorkshopRead(id=tw.workshop.id, name=tw.workshop.name, status=tw.status)
             for tw in task.workshops
         ],
-        responsibles=[Responsible(name=user.name) for user in task.responsible_users],
-        comments=[Comment(users=[Responsible(name=user.name) for user in comment.users],text=comment.comment, created_at=comment.created_at) for comment in task.comments],
+        responsibles=[UserRead(id=user.id, name=user.name, username=user.username, user_type=user.user_type, is_active=user.is_active) for user in task.responsible_users],
+        comments=[CommentRead(users=[UserRead(id=user.id, name=user.name, username=user.username, user_type=user.user_type, is_active=user.is_active) for user in comment.users],text=comment.comment, created_at=comment.created_at) for comment in task.comments],
         files=[File(id=file.id, filename=file.file_name) for file in task.bid.files if file is not None
         ],
 

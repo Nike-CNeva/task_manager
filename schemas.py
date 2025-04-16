@@ -18,13 +18,12 @@ from models import (
 )
 
 # Base Pydantic Models
-class UserBase(BaseModel):
+class UserReadBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     firstname: Optional[str] = None
     email: Optional[EmailStr] = None
     telegram: Optional[str] = None
-    username: str
     user_type: UserTypeEnum
     is_active: bool = True
 
@@ -82,7 +81,6 @@ class CustomerBase(BaseModel):
     name: str
 
 class CustomerRead(CustomerBase):
-
     id: int
 
 class WorkshopBase(BaseModel):
@@ -91,7 +89,7 @@ class WorkshopBase(BaseModel):
 class WorkshopRead(WorkshopBase):
     id: int
 
-class CommentBase(BaseModel):
+class CommentReadBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     comment: str
     created_at: datetime
@@ -99,8 +97,8 @@ class CommentBase(BaseModel):
     is_deleted: bool = False
     
 
-class CommentRead(CommentBase):
-    id: int
+class CommentRead(CommentReadBase):
+   id: int
 
 
 class SheetWidthRead(BaseModel):
@@ -121,13 +119,13 @@ class SheetRead(BaseModel):
     quantity: int    
 
 # Связи Many-to-Many
-class UserWithTasks(UserRead):
+class UserWithTasks(UserReadBase):
     tasks: List[TaskRead] = []
 
 class TaskWithUsers(TaskRead):
-    responsible_users: List[UserRead] = []
+    responsible_users: List[UserReadBase] = []
 
-class BidWithTasks(BidRead):
+class BidWithTasks(BidReadBase):
     tasks: List[TaskRead] = []
 
 class CustomerWithBids(CustomerRead):
@@ -162,7 +160,7 @@ class ProductDetailField(BaseModel):
 class Responsible(BaseModel):
     name: str
 
-class Comment(BaseModel):
+class Comment(CommentReadBase):
     users:  List[Responsible]  # Assuming a user has a name
     text: str
     created_at: datetime
