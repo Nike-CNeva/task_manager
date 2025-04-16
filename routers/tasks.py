@@ -1,17 +1,18 @@
 import json
 from typing import List
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Request, UploadFile
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Request, UploadFile, status
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
-from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum
+from models import Bid, Customer, ProfileType, Task, TaskWorkshop, User, Workshop, WorkshopEnum, Product, Material, MaterialColor, Sheets
 from dependencies import get_current_user
 from database import get_db
 from fastapi.templating import Jinja2Templates
-from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible, Sheet, StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, WorkshopWithStatus
+from schemas import BidDetail, CassetteTypeEnum, Comment, KlamerTypeEnum, Manager, ManagerEnum, MaterialFormEnum, MaterialThicknessEnum, MaterialTypeEnum, ProductTypeEnum, Responsible,  StatusEnum, TaskDetail, UrgencyEnum, WorkshopRead, Workshop, ProductRead, MaterialRead, CustomerRead, SheetRead, File, MaterialColorRead
 from services.file_service import save_file
 from services.task_service import create_bid, create_tasks, get_tasks_list, save_customer
 import os
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,60 +32,55 @@ async def get_tasks(request: Request, current_user: User = Depends(get_current_u
         "tasks": tasks
         })
 
-@router.get("/task/{task_id}", response_model=TaskDetail)
-async def get_task_detail(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        task = db.query(Task).filter(Task.id == task_id).options(
-            joinedload(Task.bid).joinedload(Bid.customer),
-            joinedload(Task.sheets),
-            joinedload(Task.material),
-            joinedload(Task.workshops).joinedload(TaskWorkshop.workshop),
-            joinedload(Task.responsible_users),
-            joinedload(Task.comments).joinedload(Comment.users),
-            joinedload(Task.bid).joinedload(Bid.files)
-        ).one_or_none()
+@router.get("/{task_id}", response_model=TaskDetail)
+def get_task_detail(task_id: int, db: Session = Depends(get_db)):
+    """
+    Get the detailed information for a specific task.
+    """
+    task = db.query(Task).filter(Task.id == task_id).options(
+        selectinload(Task.bid).selectinload(Bid.customer),
+        selectinload(Task.sheets).selectinload(Sheets.width),
+        selectinload(Task.sheets).selectinload(Sheets.length),
+        selectinload(Task.material).selectinload(Material.color),
+        selectinload(Task.workshops).selectinload(TaskWorkshop.workshop),
+        selectinload(Task.responsible_users),
+        selectinload(Task.comments).selectinload(Comment.users),
+        selectinload(Task.bid).selectinload(Bid.files),
+        selectinload(Task.product)
+    ).first()
 
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-        material_name = f"{task.material.form.value if task.material.form else ''} {task.material.type.value if task.material.type else ''} {task.material.thickness.value if task.material.thickness else ''}".strip()
+    # Construct the TaskDetail object
+    task_detail = TaskDetail(
+        id=task.id,
+        bid=BidDetail(
+            task_number=task.bid.task_number,
+            customer=CustomerRead.model_validate(task.bid.customer),
+            manager=task.bid.manager,
+        ),
+        product=ProductRead.model_validate(task.product),
+        material = MaterialRead.model_validate(task.material),
+        material_color = MaterialColorRead.model_validate(task.material.color) if task.material.color else None,
+        quantity=task.quantity,
+        sheets=[SheetRead.model_validate(sheet) for sheet in task.sheets],
+        weight=task.weight,
+        waste=task.waste,
+        urgency=task.urgency,
+        status=task.status,
+        workshops=[
+            Workshop(name=tw.workshop.name, status=tw.status)
+            for tw in task.workshops
+        ],
+        responsibles=[Responsible(name=user.name) for user in task.responsible_users],
+        comments=[Comment(users=[Responsible(name=user.name) for user in comment.users],text=comment.comment, created_at=comment.created_at) for comment in task.comments],
+        files=[File(id=file.id, filename=file.file_name) for file in task.bid.files],
+        created_at=task.created_at,
+        completed_at=task.completed_at,
+    )
 
-        task_detail = TaskDetail(
-            id=task.id,
-            bid=BidDetail(
-                task_number=task.bid.task_number if task.bid else None,
-                customer=task.bid.customer.name if task.bid and task.bid.customer else None,
-                manager=task.bid.manager.value if task.bid and task.bid.manager else None,
-            ),
-            product_id=str(task.product_id),
-            material=material_name,
-            quantity=task.quantity,
-            sheets=[Sheet(name=sheet.width.width, thickness=sheet.length.length) for sheet in task.sheets],
-            weight=task.weight,
-            waste=task.waste,
-            urgency=task.urgency.value,
-            status=task.status.value,
-            workshops=[WorkshopWithStatus(name=workshop.workshop.name.value, status=workshop.status) for workshop in task.workshops],
-            responsibles=[Responsible(name=responsible.name) for responsible in task.responsible_users],
-            comments=[
-                Comment(
-                    users=[Responsible(name=user.name) for user in comment.users],
-                    text=comment.comment,
-                    created_at=comment.created_at
-                ) for comment in task.comments
-            ],
-            files=[File(id=file.id, filename=file.file_name) for file in task.bid.files],
-            created_at=task.created_at,
-            completed_at=task.completed_at,
-        )
-
-        return task_detail
-    except SQLAlchemyError as e:
-        logger.error(f"Database error while processing task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail="Database error")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred while processing task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail="An unexpected error occurred")
+    return task_detail
 
 @router.post("/task/{task_id}/delete")
 async def delete_task(task_id: int, db: Session = Depends(get_db)):

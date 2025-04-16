@@ -1,115 +1,31 @@
-from pydantic import BaseModel, EmailStr
-from typing import Dict, Optional, List
-from enum import Enum
+from pydantic import BaseModel, EmailStr, ConfigDict
+from typing import Optional, List
 from datetime import datetime
-
-# Enums
-class ProductTypeEnum(str, Enum):
-    PROFILE = "Профиля"
-    KLAMER = "Клямера"
-    BRACKET = "Кронштейны"
-    EXTENSION_BRACKET = "Удлинители кронштейнов"
-    CASSETTE = "Кассеты"
-    FACING = "Фасонка"
-    LINEAR_PANEL = "Линеарные панели"
-    SHEET = "Листы"
-    WALL_PANEL = "Стеновые панели(Продэкс)"
-    OTHER = "Другое"
-
-class UserTypeEnum(str, Enum):
-    ADMIN = "Администратор"
-    ENGINEER = "Инженер"
-    OPERATOR = "Оператор"
-    SUPERVISER = "Старший смены"
-    
-class ProfileTypeEnum(str, Enum):
-    G40X40 = "Г-образный 40х40"
-    G40X60 = "Г-образный 40х60"
-    G50X50 = "Г-образный 50х50"
-    P60 = "П-образный 60"
-    P80 = "П-образный 80"
-    P100 = "П-образный 100"
-    Z20X20X40 = "З-образный 20х20х40"
-    PGSH = "ПГШ"
-    PVSH = "ПВШ"
-    PNU = "ПНУ"
-    OTHER = "Не стандрт"
-
-
-class WorkshopEnum(str, Enum):
-    PROFILE = "Прокат профилей"
-    KLAMER = "Прокат клямеров"
-    BRACKET = "Прокат кронштейнов"
-    EXTENSION_BRACKET = "Гибка удлинителей кронштейнов"
-    ENGINEER = "Инженер"
-    BENDING = "Гибка"
-    CUTTING = "Резка"
-    COORDINATE_PUNCHING = "Координатка"
-    PAINTING = "Покраска"
-
-class ManagerEnum(str, Enum):
-    NOVIKOV = "Новиков"
-    SEMICHEV = "Семичев С."
-    PTICHKINA = "Птичкина"
-    VIKULINA = "Викулина"
-    GAVRILOVEC = "Гавриловец"
-    SEMICHEV_YOUNGER = "Семичев Д."
-
-class KlamerTypeEnum(str, Enum):
-    IN_LINE = "Рядный"
-    STARTING = "Стартовый"
-    ANGULAR = "Угловой"
-
-class CassetteTypeEnum(str, Enum):
-    KZT_STD = "Зактрытого типа(стандарт)"
-    KOT_STD = "Открытого типа(стандарт)"
-    KOTVO = "Открытого типа, отв. в вертикальных рустах"
-    KZT = "Закрытого типа"
-    KOT = "Открытого типа"
-    OTHER = "Другое"
-
-class MaterialFormEnum(str, Enum):
-    SHEET = "Лист"
-    COIL = "Рулон"
-    STRIP = "Штрипс"
-
-class MaterialTypeEnum(str, Enum):
-    ALUMINIUM = "Алюминий"
-    STEEL = "Сталь"
-    STAINLESS_STEEL = "Нержавеющая сталь"
-    ZINC = "Оцинковка"
-    POLYMER = "Полимер"
-
-class MaterialThicknessEnum(str, Enum):
-    ZERO_FIVE = "0.5мм"
-    ZERO_SEVEN = "0.7мм"
-    ONE = "1.0мм"
-    ONE_TWO = "1.2мм"
-    ONE_FIVE = "1.5мм"
-    TWO = "2.0мм"
-    THREE = "3.0мм"
-
-class UrgencyEnum(str, Enum):
-    LOW = "Низкая"
-    MEDIUM = "Нормальная"
-    HIGH = "Высокая"
-
-class StatusEnum(str, Enum):
-    NEW = "Новая"
-    IN_WORK = "В работе"
-    COMPLETED = "Выполнена"
-    CANCELED = "Отменена"
-    ON_HOLD = "На удержании"
+from models import (
+    ProductTypeEnum,
+    UserTypeEnum,
+    ProfileTypeEnum,
+    WorkshopEnum,
+    ManagerEnum,
+    KlamerTypeEnum,
+    CassetteTypeEnum,
+    MaterialFormEnum,
+    MaterialTypeEnum,
+    MaterialThicknessEnum,
+    UrgencyEnum,
+    StatusEnum
+)
 
 # Base Pydantic Models
 class UserBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     firstname: Optional[str] = None
     email: Optional[EmailStr] = None
     telegram: Optional[str] = None
     username: str
     user_type: UserTypeEnum
-    is_active: bool = True
+    is_active: bool = True    
 
 class UserRead(UserBase):
     id: int
@@ -117,10 +33,9 @@ class UserRead(UserBase):
     class Config:
         from_attributes = True
 
+
 class TaskBase(BaseModel):
-    quantity: Optional[int] = None
-    urgency_id: StatusEnum
-    status_id: StatusEnum
+    model_config = ConfigDict(from_attributes=True)
     waste: Optional[str] = None
     weight: Optional[str] = None
     created_at: datetime
@@ -128,13 +43,12 @@ class TaskBase(BaseModel):
 
 class TaskRead(TaskBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    quantity: Optional[int] = None
+    urgency: UrgencyEnum
+    status: StatusEnum
 
 class BidBase(BaseModel):
-    task_number: Optional[str] = None
-    customer_id: int
+    model_config = ConfigDict(from_attributes=True)
     manager: ManagerEnum
 
 
@@ -142,11 +56,11 @@ class BidRead(BidBase):
     id: int
 
     class Config:
-        from_attributes = True
+        from_attributes = True    
 
 class ProductBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     type: str
-
 class ProductRead(ProductBase):
     id: int
 
@@ -154,9 +68,10 @@ class ProductRead(ProductBase):
         from_attributes = True
 
 class MaterialBase(BaseModel):
-    form_id: str
-    type_id: str
-    thickness_id: str
+    model_config = ConfigDict(from_attributes=True)
+    form: MaterialFormEnum
+    type: MaterialTypeEnum
+    thickness: MaterialThicknessEnum
     painting: bool = False
 
 class MaterialRead(MaterialBase):
@@ -164,11 +79,18 @@ class MaterialRead(MaterialBase):
 
     class Config:
         from_attributes = True
+class MaterialColorRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
 
 class CustomerBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
 
 class CustomerRead(CustomerBase):
+
+
     id: int
 
     class Config:
@@ -184,6 +106,7 @@ class WorkshopRead(WorkshopBase):
         from_attributes = True
 
 class CommentBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     comment: str
     created_at: datetime
     is_read: bool = False
@@ -194,6 +117,20 @@ class CommentRead(CommentBase):
 
     class Config:
         from_attributes = True
+
+class SheetWidthRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    width: str
+
+class SheetLengthRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    length: str
+
+class SheetRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    quantity: int
 
 # Связи Many-to-Many
 class UserWithTasks(UserRead):
@@ -210,11 +147,11 @@ class CustomerWithBids(CustomerRead):
 
 
 class ProductRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     product_type: str  # Тип продукта, например, "профиля", "клямера", "кассеты" и т.д.
     material_type: Optional[str] = None  # Дополнительный выбор материала, если применимо
     thickness: Optional[float] = None  # Толщина материала, если применимо
     other_condition: Optional[str] = None  # Дополнительное поле, если применимо
-    color: Optional[str] = None  # Поле для цвета, если применимо
     paint: Optional[bool] = None  # Необходимость покраски, если материал не полимер
     
 class Customer(BaseModel):
@@ -224,7 +161,7 @@ class Manager(BaseModel):
     value: str
 
 class BidDetail(BaseModel):
-    task_number: str
+    task_number: Optional[str] = None
     customer: str
     manager: str
 
@@ -233,13 +170,7 @@ class ProductDetailField(BaseModel):
     label: str
     type: str
 
-class Sheet(BaseModel):
-    name: str
-    thickness: float
 
-class Workshop(BaseModel):
-    name: str
-    status: str
 
 class Responsible(BaseModel):
     name: str
@@ -255,15 +186,16 @@ class File(BaseModel):
 
 class TaskDetail(BaseModel):
     id: int
-    bid: BidDetail
-    product_id: str
-    material: Optional[str]
+    bid: Optional[BidDetail]
+    product: ProductRead
+    material: Optional[MaterialRead]
+    material_color: Optional[MaterialColorRead]
     quantity: int
-    sheets: List[Sheet]
+    sheets: List[SheetRead]
     weight: Optional[str]
     waste: Optional[str]
-    urgency: str
-    status: str
+    urgency: UrgencyEnum
+    status: StatusEnum
     workshops: List[Workshop]
     responsibles: List[Responsible]
     comments: List[Comment]
@@ -273,7 +205,7 @@ class TaskDetail(BaseModel):
     
 
 
-# Pydantic модель для Workshop с добавлением статуса
-class WorkshopWithStatus(BaseModel):
-    name: str
+class Workshop(BaseModel):
+    name: WorkshopEnum
     status: StatusEnum
+# Pydantic модель для Workshop с добавлением статуса

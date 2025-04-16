@@ -6,9 +6,9 @@
 <p><strong>Заказчик:</strong> {{ task.bid.customer.name }}</p>
 <p><strong>Менеджер:</strong> {{ task.bid.manager.value }}</p>
 
-<p><strong>Тип продукции:</strong> {{ task.product_id }}</p>
+<p><strong>Тип продукции:</strong> {{ task.product.type }}</p>
 
-<h4>Детали продукции:</h4>
+<!--<h4>Детали продукции:</h4>
 <ul>
     {% for field in fields %}
         {% set value = task.data.product_details.get(field.name) %}
@@ -23,7 +23,7 @@
         {% endif %}
     {% endfor %}
 </ul>
-
+-->
 <p><strong>Материал:</strong> {{ task.material.name if task.material else "—" }}</p>
 <p><strong>Количество:</strong> {{ task.quantity }}</p>
 
